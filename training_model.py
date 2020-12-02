@@ -7,31 +7,33 @@ from tensorflow.keras.optimizers import Adam
 from environment import StockMarket
 
 
-class ActorCritic(Model):
-    def __init__(self, inp_size):
+class ActorCritic(Model): #after inheritance class ActorCritic becomes a Model class
+    def __init__(self, inp_size): #function to initialize all the layers 
         self.inp_size = inp_size
         super(ActorCritic, self).__init__()
-        self.hlayer1 = Dense(128, activation='relu')
-        self.hlayer2 = Dense(128, activation='relu')
-        self.rec_layer = GRU(128, stateful=True)
-        self.hlayer3 = Dense(64, activation='relu')
-        self.action_layer = Dense(5, activation='softmax')
-        self.critic_layer = Dense(1)
+        self.hlayer1 = Dense(128, activation='relu') # creating objects of class Dense, first hidden layer, with 128 nodes and relu activation fucntion
+        self.hlayer2 = Dense(128, activation='relu') # second hidden layer, the number 128 and activation function relu were chosen based on performance comparisons
+        self.rec_layer = GRU(128, stateful=True) # gated recurrent unit, used to handle time series data and RNN, has logistic regression units as gates.
+        self.hlayer3 = Dense(64, activation='relu') # third hidden layer with 64 nodes.
+        self.action_layer = Dense(5, activation='softmax') # predicts what actions to take, 5 is the no of actions, indexed from 0 to 4
+        #0 buy first stock; 1: sell first stock; 2: hold; 3:buy second; 4: sell second; 
+        self.critic_layer = Dense(1) # tries to find the action that gives best results, is a real number so no activation function is used.
 
-    def call(self, inputs):
-        x = tf.convert_to_tensor(inputs)
-        x = self.hlayer1(x)
-        x = self.hlayer2(x)
-        x = self.rec_layer(x)
-        x = self.hlayer3(x)
-        actions = self.action_layer(x)
-        statev = self.critic_layer(x)
+    def call(self, inputs): # part of the class ActorCritic which executes whenever model() is called
+        x = tf.convert_to_tensor(inputs) # the inputs has to be converted to tensors to use tensor flow keras.
+        x = self.hlayer1(x) # callable objects, not a function call, keras allows the use of callable objects
+        x = self.hlayer2(x) # output of first layer is input to the second.
+        x = self.rec_layer(x) # output of second layer is input to the GRU layer and so on till layer 3
+        x = self.hlayer3(x) #so far there was no branching, next line is start of a new branch
+        actions = self.action_layer(x) 
+        statev = self.critic_layer(x) # stores the real number value of the state.
+        #debugging and error handling, NANs, infinity etc are taken for computation by tensorflow and results in NANs in the output or wrong ouput
         try:
-            tf.debugging.check_numerics(actions, 'Output')
+            tf.debugging.check_numerics(actions, 'Output') #check the actions to detect NANs
         except:
-            print(x)
-            raise IndentationError
-        return actions, statev
+            print(x) #the value of x gives an idea of possible bug. 
+            raise IndentationError #raising some error to stop execution 
+        return actions, statev 
 
 
 def epsilon_greedy(a, eps):
